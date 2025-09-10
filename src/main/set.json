@@ -30,5 +30,6 @@
   "manualTheme": "light",
   "customApiPlugin": "",
   "customApiPluginName": "",
-  "showHotSearchOnSearchPage": true
+  "showHotSearchOnSearchPage": true,
+  "isMenuExpanded": false
 }
