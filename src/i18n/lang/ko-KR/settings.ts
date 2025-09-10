@@ -91,6 +91,11 @@ export default {
       importSuccess: '음원 가져오기 성공: {name}',
       importFailed: '가져오기 실패: {message}',
     },
+    searchPage: {
+      title: '검색 페이지 설정',
+      showHotSearchDesc: '검색 페이지에 인기 검색 목록 표시 여부 제어',
+      showHotSearchLabel: '인기 검색 목록 표시'
+    }
   },
   application: {
     closeAction: '닫기 동작',

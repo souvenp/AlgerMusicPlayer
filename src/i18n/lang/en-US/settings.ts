@@ -93,6 +93,11 @@ export default {
       importSuccess: 'Successfully imported source: {name}',
       importFailed: 'Import failed: {message}',
     },
+    searchPage: {
+      title: 'Search Page Settings',
+      showHotSearchDesc: 'Control whether to display the hot search list on the search page',
+      showHotSearchLabel: 'Show Hot Search List'
+    }
   },
   application: {
     closeAction: 'Close Action',

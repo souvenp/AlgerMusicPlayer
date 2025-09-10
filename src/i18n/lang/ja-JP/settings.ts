@@ -91,6 +91,11 @@ export default {
       importSuccess: '音源のインポートに成功しました: {name}',
       importFailed: 'インポートに失敗しました: {message}',
     },
+    searchPage: {
+      title: '検索ページ設定',
+      showHotSearchDesc: '検索ページに人気検索リストを表示するかどうかを制御します',
+      showHotSearchLabel: '人気検索リストを表示'
+    }
   },
   application: {
     closeAction: '閉じる動作',

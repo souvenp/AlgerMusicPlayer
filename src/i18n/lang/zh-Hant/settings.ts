@@ -91,6 +91,11 @@ export default {
       importSuccess: '成功匯入音源：{name}',
       importFailed: '匯入失敗：{message}',
     },
+    searchPage: {
+      title: '搜尋頁面設定',
+      showHotSearchDesc: '控制是否在搜尋頁面顯示熱搜列表',
+      showHotSearchLabel: '顯示熱搜列表'
+    }
   },
   application: {
     closeAction: '關閉行為',

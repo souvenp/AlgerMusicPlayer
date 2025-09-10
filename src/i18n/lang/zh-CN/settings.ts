@@ -93,6 +93,11 @@ export default {
       importSuccess: '成功导入音源: {name}',
       importFailed: '导入失败: {message}',
     },
+    searchPage: {
+      title: '搜索页面设置',
+      showHotSearchDesc: '控制是否在搜索页面显示热搜列表',
+      showHotSearchLabel: '显示热搜列表'
+    }
   },
   application: {
     closeAction: '关闭行为',
