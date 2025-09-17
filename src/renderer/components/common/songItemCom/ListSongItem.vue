@@ -43,6 +43,9 @@
             :class="{ 'text-green-500': isPlaying }"
           >
             {{ item.name }}
+            <span v-if="item.alia?.length || item.tns?.length" class="song-alias">
+              （{{ (item.alia && item.alia[0]) || (item.tns && item.tns[0]) }}）
+            </span>
           </n-ellipsis>
           <div class="song-item-content-divider">-</div>
           <n-ellipsis class="song-item-content-name text-ellipsis" line-clamp="1">
@@ -192,5 +195,9 @@ const onPlayMusic = () => {
       }
     }
   }
+}
+.song-alias {
+  @apply text-gray-300 dark:text-gray-400 ml-1;
+  /* font-size: 0.9em; */
 }
 </style>

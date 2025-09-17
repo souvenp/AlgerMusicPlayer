@@ -41,6 +41,9 @@
               :class="{ 'text-green-500': isPlaying }"
             >
               {{ item.name }}
+              <span v-if="item.alia?.length || item.tns?.length" class="song-alias">
+                （{{ (item.alia && item.alia[0]) || (item.tns && item.tns[0]) }}）
+              </span>
             </n-ellipsis>
           </div>
           <div class="song-item-content-compact-artist">
@@ -347,5 +350,9 @@ const getQualityClass = (quality: string | null): string => {
 // 全局应用
 :deep(.text-ellipsis) {
   width: 100%;
+}
+.song-alias {
+  @apply text-gray-300 dark:text-gray-400 ml-1;
+  /* font-size: 0.9em; */
 }
 </style>

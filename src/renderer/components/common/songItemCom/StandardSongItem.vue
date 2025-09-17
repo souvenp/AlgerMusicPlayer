@@ -41,8 +41,11 @@
             class="text-ellipsis"
             line-clamp="1"
             :class="{ 'text-green-500': isPlaying }"
-            >{{ item.name }}</n-ellipsis
-          >
+            >{{ item.name }}
+            <span v-if="item.alia?.length || item.tns?.length" class="song-alias">
+      （{{ (item.alia && item.alia[0]) || (item.tns && item.tns[0]) }}）
+    </span>
+          </n-ellipsis>
         </div>
         <div class="song-item-content-name flex items-center">
           <div class="song-tags mr-2">
@@ -290,6 +293,10 @@ const getQualityClass = (quality: string | null): string => {
   .song-tags {
     margin-right: 4px;
   }
+}
+.song-alias {
+  @apply text-gray-300 dark:text-gray-400 ml-1;
+  /* font-size: 0.9em; */
 }
 // ======================================================
 </style>
