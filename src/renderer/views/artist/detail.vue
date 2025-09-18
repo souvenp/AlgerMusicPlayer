@@ -17,6 +17,23 @@
         <div v-if="artistInfo?.briefDesc" class="artist-desc">
           {{ artistInfo.briefDesc }}
         </div>
+
+        <!-- ==================== 新增: 关注按钮 ==================== -->
+        <div class="artist-actions mt-4">
+          <n-button
+              strong
+              secondary
+              round
+              :loading="isSubscribing"
+              @click="handleToggleSubscription"
+          >
+            <template #icon>
+              <i class="iconfont" :class="isFollowed ? 'ri-heart-fill text-red-500' : 'ri-heart-add-line'"></i>
+            </template>
+            {{ isFollowed ? '已关注' : '关注' }}
+          </n-button>
+        </div>
+        <!-- ======================================================== -->
       </div>
     </div>
 
@@ -262,6 +279,21 @@ const isSearchVisible = ref(false);
 const isCompactLayout = ref(
   isMobile.value ? false : localStorage.getItem('musicListLayout') === 'compact'
 );
+
+// ==================== 新增: 判断是否已关注 ====================
+const isFollowed = computed(() => {
+  return playerStore.followedArtistIds.has(artistId.value);
+});
+
+const isSubscribing = ref(false);
+
+const handleToggleSubscription = async () => {
+  if (isSubscribing.value) return;
+  isSubscribing.value = true;
+  await playerStore.toggleArtistSubscription(artistId.value);
+  isSubscribing.value = false;
+};
+// ==========================================================
 
 // 加载歌手信息
 const loadArtistInfo = async () => {

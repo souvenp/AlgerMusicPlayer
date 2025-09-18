@@ -53,7 +53,7 @@
               </span>
               <span v-if="item.fee === 1" class="song-tag vip-tag">VIP</span>
             </div>
-            <n-ellipsis line-clamp="1">
+            <n-ellipsis line-clamp="1" v-if="!hideArtist">
               <template v-for="(artist, index) in artists" :key="index">
                 <span
                   class="cursor-pointer hover:text-green-500"
@@ -132,6 +132,7 @@ const props = withDefaults(
     canRemove?: boolean;
     isNext?: boolean;
     index?: number;
+    hideArtist?: boolean;
   }>(),
   {
     favorite: true,
@@ -139,7 +140,8 @@ const props = withDefaults(
     selected: false,
     canRemove: false,
     isNext: false,
-    index: undefined
+    index: undefined,
+    hideArtist: false,
   }
 );
 
@@ -215,144 +217,85 @@ const getQualityClass = (quality: string | null): string => {
 <style lang="scss" scoped>
 .compact-song-item {
   @apply rounded-lg p-2 h-12 mb-1 border-b dark:border-gray-800 border-gray-100;
-
   &:hover {
     @apply bg-gray-50 dark:bg-gray-700;
-
-    .opacity-0 {
-      opacity: 1;
-    }
-  }
-
-  .song-item-index {
-    @apply w-8 text-center text-gray-500 dark:text-gray-400 text-sm;
-  }
-
-  .song-item-select {
-    @apply mr-3 cursor-pointer;
-  }
-
-  .song-item-content-compact {
-    @apply flex-1 flex items-center gap-4;
-
-    &-wrapper {
-      @apply flex-1 min-w-0 flex items-center;
-    }
-
-    &-title {
-      @apply text-sm cursor-pointer text-gray-900 dark:text-white flex items-center;
-    }
-
-    &-artist {
-      @apply w-40 text-sm text-gray-500 dark:text-gray-400 ml-2 flex items-center;
-    }
-
-    &-album {
-      @apply w-32 flex items-center text-sm text-gray-500 dark:text-gray-400;
-    }
-
-    &-duration {
-      @apply w-16 flex items-center text-sm text-gray-500 dark:text-gray-400 text-right;
-    }
-  }
-
-  .song-item-operating-compact {
-    @apply border-none bg-transparent gap-2 flex items-center;
-
-    .song-item-operating-like,
-    .song-item-operating-play,
-    .song-item-operating-menu {
-      @apply transition-opacity duration-200;
-    }
-
-    .song-item-operating-play {
-      @apply w-7 h-7 flex items-center justify-center cursor-pointer rounded-full bg-gray-300 dark:bg-gray-800 border dark:border-gray-700 border-gray-200 text-gray-900 dark:text-white;
-
-      &:hover,
-      &.bg-green-600 {
-        @apply bg-green-500 border-green-500 text-white;
-      }
-
-      .iconfont {
-        @apply text-base;
-      }
-    }
-
-    .song-item-operating-like {
-      @apply mr-1 ml-0 cursor-pointer;
-
-      .iconfont {
-        @apply text-base transition text-gray-500 dark:text-gray-400 hover:text-red-500;
-      }
-      .like-active {
-        @apply text-red-500 dark:text-red-500;
-      }
-    }
-
-    .song-item-operating-menu {
-      @apply cursor-pointer flex items-center justify-center px-2;
-
-      .iconfont {
-        @apply text-xl transition text-gray-500 dark:text-gray-400 hover:text-green-500;
-      }
-    }
-
-    .opacity-0 {
-      opacity: 0;
-    }
+    .opacity-0 { opacity: 1; }
   }
 }
 
-// ==================== 标签样式 ====================
-.song-tags {
-  @apply flex items-center gap-1 flex-shrink-0;
+.song-item-index {
+  @apply w-8 text-center text-gray-500 dark:text-gray-400 text-sm flex-shrink-0;
 }
 
-.song-tag {
-  @apply text-xs px-1 py-0.5 rounded border;
-  transform: scale(0.85);
-  transform-origin: left center;
-  letter-spacing: 0.5px;
-  background-color: transparent !important;
+.song-item-select {
+  @apply mr-3 cursor-pointer flex-shrink-0;
 }
 
-.hires-tag {
-  @apply text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-500/70;
-}
+.song-item-content-compact {
+  @apply flex-1 flex items-center gap-4 min-w-0;
 
-.sq-tag {
-  @apply text-amber-600 border-amber-500/80 dark:text-amber-400 dark:border-amber-500/70;
-}
+  &-wrapper {
+    @apply flex-1 min-w-0 flex items-center;
+  }
 
-.hq-tag {
-  @apply text-green-600 border-green-500/80 dark:text-green-400 dark:border-green-500/70;
-}
+  &-title {
+    @apply text-sm cursor-pointer text-gray-900 dark:text-white flex items-center flex-shrink-0;
+    width: 15rem; /* w-60 */
+    transition: width 0.3s ease;
+  }
 
-.vip-tag {
-  @apply text-purple-600 border-purple-500/80 dark:text-purple-400 dark:border-purple-500/70;
-}
+  &-artist {
+    @apply text-sm text-gray-500 dark:text-gray-400 ml-2 flex items-center flex-shrink-0;
+    width: 10rem; /* w-40 */
+    min-width: 50px; /* 保证TAG至少有显示空间 */
 
-.compact-song-item .song-item-content-compact-artist {
-  @apply flex items-center;
-  .song-tags {
-    margin-right: 2px;
+    .artist-names {
+      @apply min-w-0; // 关键：让 n-ellipsis 能够被压缩
+    }
+  }
+
+  &-album {
+    @apply w-32 flex items-center text-sm text-gray-500 dark:text-gray-400 flex-shrink-0;
+    transition: width 0.3s ease;
+  }
+
+  &-duration {
+    @apply w-16 flex items-center text-sm text-gray-500 dark:text-gray-400 text-right flex-shrink-0;
   }
 }
 
-.standard-song-item .song-item-content-name {
-  @apply flex items-center;
-  .song-tags {
-    margin-right: 4px;
-  }
+/* ==================== 核心布局调整 ==================== */
+/* 当 hideArtist 为 true 时，让歌曲名和专辑名变长 */
+.song-item-content-compact-title.expanded {
+  width: 20rem; /* w-80, 增加了 5rem */
 }
-// ======================================================
+.song-item-content-compact-album.expanded {
+  width: 10rem; /* w-40, 增加了 2rem */
+}
+/* ======================================================== */
 
-// 全局应用
-:deep(.text-ellipsis) {
-  width: 100%;
+.song-item-operating-compact {
+  @apply border-none bg-transparent gap-2 flex items-center flex-shrink-0;
+  /* ... 操作按钮样式 ... */
+  .song-item-operating-play { @apply w-7 h-7 flex items-center justify-center cursor-pointer rounded-full bg-gray-300 dark:bg-gray-800 border dark:border-gray-700 border-gray-200 text-gray-900 dark:text-white; }
+  .song-item-operating-play:hover, .song-item-operating-play.bg-green-600 { @apply bg-green-500 border-green-500 text-white; }
+  .song-item-operating-play .iconfont { @apply text-base; }
+  .song-item-operating-like { @apply mr-1 ml-0 cursor-pointer; }
+  .song-item-operating-like .iconfont { @apply text-base transition text-gray-500 dark:text-gray-400 hover:text-red-500; }
+  .song-item-operating-like .like-active { @apply text-red-500 dark:text-red-500; }
+  .song-item-operating-menu { @apply cursor-pointer flex items-center justify-center px-2; }
+  .song-item-operating-menu .iconfont { @apply text-xl transition text-gray-500 dark:text-gray-400 hover:text-green-500; }
+  .opacity-0 { opacity: 0; }
 }
-.song-alias {
-  @apply text-gray-300 dark:text-gray-400 ml-1;
-  /* font-size: 0.9em; */
-}
+
+/* 标签和别名样式 */
+.song-tags { @apply flex items-center gap-1 flex-shrink-0; }
+.song-tag { @apply text-xs px-1 py-0.5 rounded border; transform: scale(0.85); transform-origin: left center; letter-spacing: 0.5px; background-color: transparent !important; }
+.hires-tag { @apply text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-500/70; }
+.sq-tag { @apply text-amber-600 border-amber-500/80 dark:text-amber-400 dark:border-amber-500/70; }
+.hq-tag { @apply text-green-600 border-green-500/80 dark:text-green-400 dark:border-green-500/70; }
+.vip-tag { @apply text-purple-600 border-purple-500/80 dark:text-purple-400 dark:border-purple-500/70; }
+.song-alias { @apply text-gray-400 dark:text-gray-500 ml-1; }
+
+:deep(.text-ellipsis) { width: 100%; }
 </style>

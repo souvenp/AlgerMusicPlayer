@@ -16,6 +16,8 @@ import { getImageLinearBackground } from '@/utils/linearColor';
 
 import { useSettingsStore } from './settings';
 import { useUserStore } from './user';
+import {subscribeArtist} from "../../api/artist";
+import {getFollowedArtists} from "../../api/user";
 
 const musicHistory = useMusicHistory();
 const { message } = createDiscreteApi(['message']);
@@ -442,6 +444,56 @@ export const usePlayerStore = defineStore('player', () => {
   const showSleepTimer = ref(false); // 定时弹窗
   // 添加播放列表抽屉状态
   const playListDrawerVisible = ref(false);
+
+  const followedArtistIds = ref<Set<number>>(new Set());
+
+  // ==================== 新增: 管理歌手列表的 Actions ====================
+
+  /**
+   * 从API加载并设置用户关注的歌手列表
+   */
+  const fetchFollowedArtists = async () => {
+    try {
+      // 这里需要一个获取关注歌手列表的API，我们之前创建过
+      const res = await getFollowedArtists(); // 假设这个API在 user.ts 或 artist.ts
+      if (res.data && res.data.data) {
+        const artistIds = res.data.data.map((artist: any) => artist.id);
+        followedArtistIds.value = new Set(artistIds);
+        console.log(`[Store] 已加载 ${artistIds.length} 位关注的歌手。`);
+      }
+    } catch (error) {
+      console.error("[Store] 获取关注歌手列表失败:", error);
+    }
+  };
+
+  /**
+   * 切换歌手的关注状态
+   * @param artistId 歌手ID
+   */
+  const toggleArtistSubscription = async (artistId: number) => {
+    const isFollowed = followedArtistIds.value.has(artistId);
+    const operation = isFollowed ? 0 : 1; // 0 for unsubscribe, 1 for subscribe
+
+    try {
+      const response = await subscribeArtist(artistId, operation);
+      if (response.data.code === 200) {
+        if (isFollowed) {
+          followedArtistIds.value.delete(artistId);
+          message.success("已取消关注");
+        } else {
+          followedArtistIds.value.add(artistId);
+          message.success("已关注");
+        }
+        return true; // 操作成功
+      } else {
+        throw new Error(response.data.message || "操作失败");
+      }
+    } catch (error) {
+      console.error("关注/取消关注歌手失败:", error);
+      message.error("操作失败，请稍后重试");
+      return false; // 操作失败
+    }
+  };
 
   // 定时关闭相关状态
   const sleepTimer = ref<SleepTimerInfo>(
@@ -1695,6 +1747,10 @@ export const usePlayerStore = defineStore('player', () => {
     originalPlayList,
     shufflePlayList,
     restoreOriginalOrder,
-    preloadNextSongs
+    preloadNextSongs,
+
+    followedArtistIds,
+    fetchFollowedArtists,
+    toggleArtistSubscription,
   };
 });

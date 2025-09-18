@@ -72,3 +72,10 @@ export const getUserPlaylists = (params: { uid: string | number }) => {
     params
   });
 };
+
+/**
+ * 获取用户关注的歌手列表
+ */
+export const getFollowedArtists = () => {
+  return request.get('/artist/sublist');
+};

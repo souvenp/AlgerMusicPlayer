@@ -72,9 +72,12 @@ import SleepTimerTop from '@/components/player/SleepTimerTop.vue';
 import homeRouter from '@/router/home';
 import otherRouter from '@/router/other';
 import { useMenuStore } from '@/store/modules/menu';
-import { usePlayerStore } from '@/store/modules/player';
+import { usePlayerStore, useUserStore } from '@/store';
 import { useSettingsStore } from '@/store/modules/settings';
 import { isElectron, isMobile } from '@/utils';
+
+const userStore = useUserStore();
+
 
 const keepAliveInclude = computed(() => {
   const allRoutes = [...homeRouter, ...otherRouter];
@@ -134,6 +137,18 @@ const openPlaylistDrawer = (songId: number, isOpen: boolean = true) => {
   playerStore.setMusicFull(false);
   playerStore.setPlayListDrawerVisible(!isOpen);
 };
+
+// 监听用户登录状态
+watch(() => userStore.user, (newUser) => {
+  if (newUser) {
+    // 用户登录后，立即获取关注的歌手列表并填充到 store
+    console.log("User logged in, fetching followed artists...");
+    playerStore.fetchFollowedArtists();
+  } else {
+    // 用户登出后，清空 store
+    playerStore.followedArtistIds = new Set();
+  }
+}, { immediate: true }); // 确保应用加载时就执行一次
 
 // 将方法提供给全局
 provide('openPlaylistDrawer', openPlaylistDrawer);

@@ -23,6 +23,17 @@ const layoutRouter = [
     component: () => import('@/views/search/index.vue')
   },
   {
+    path: '/favorite-artists',
+    name: 'favoriteArtists',
+    meta: {
+      title: '喜欢的歌手', // 这里之后可以换成i18n的key
+      icon: 'ri-user-star-line', // 找一个合适的Remix Icon
+      keepAlive: true,
+      isMobile: false // 这个复杂布局可能不适合移动端，先禁用
+    },
+    component: () => import('@/views/favoriteArtists/index.vue')
+  },
+  {
     path: '/list',
     name: 'list',
     meta: {
