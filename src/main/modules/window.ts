@@ -323,6 +323,15 @@ export function createMainWindow(icon: Electron.NativeImage): BrowserWindow {
     preMiniModeState = { ...savedState };
   }
 
+  // ==================== 监听来自其他窗口的控制指令 ====================
+  ipcMain.on('control-command', (_, command: string) => {
+    console.log(`[Main Window] Received control command: ${command}`);
+    // 将指令转发给主窗口的渲染进程
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('execute-control-command', command);
+    }
+  });
+
   mainWindow.on('show', () => {
     setThumbarButtons(mainWindow);
   });

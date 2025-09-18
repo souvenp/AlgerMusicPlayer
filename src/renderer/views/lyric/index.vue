@@ -150,6 +150,19 @@ const dynamicData = ref({
   isPlay: true
 });
 
+// ==================== 滚轮事件处理器 ====================
+const handleWheel = (event: WheelEvent) => {
+  // 阻止页面默认的滚动行为
+  event.preventDefault();
+  // event.deltaY > 0 表示向下滚动 (音量减)
+  // event.deltaY < 0 表示向上滚动 (音量加)
+  if (event.deltaY > 0) {
+    window.api.sendControlCommand('volumeDown');
+  } else if (event.deltaY < 0) {
+    window.api.sendControlCommand('volumeUp');
+  }
+};
+
 // 安全加载歌词设置
 const loadLyricSettings = () => {
   try {
@@ -249,6 +262,7 @@ watch(
 );
 
 onMounted(() => {
+  window.addEventListener('wheel', handleWheel, { passive: false });
   // 初始化时，如果是锁定状态，确保控制栏隐藏
   if (lyricSetting.value.isLock) {
     isHovering.value = false;
@@ -256,6 +270,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener('wheel', handleWheel);
   clearHideTimer();
 });
 

@@ -112,6 +112,22 @@ const isPlay = computed(() => playerStore.playMusic && playerStore.playMusic.id)
 const { menus } = menuStore;
 const route = useRoute();
 
+if (isElectron) {
+  window.electron.ipcRenderer.on('execute-control-command', (_, command: string) => {
+    console.log(`[AppLayout] Executing command: ${command}`);
+    switch(command) {
+      case 'volumeUp': {
+        playerStore.increaseVolume(0.05); // 每次滚动增加5%
+        break;
+      }
+      case 'volumeDown': {
+        playerStore.decreaseVolume(0.05); // 每次滚动减少5%
+        break;
+      }
+    }
+  });
+}
+
 // 判断当前路由是否应该在移动端显示AppMenu
 const shouldShowMobileMenu = computed(() => {
   // 过滤出在menus中定义的路径

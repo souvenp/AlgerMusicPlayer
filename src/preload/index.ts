@@ -58,6 +58,11 @@ const api = {
   },
   // 搜索建议
   getSearchSuggestions: (keyword: string) => ipcRenderer.invoke('get-search-suggestions', keyword),
+  /**
+   * 向主窗口发送一个播放控制指令
+   * @param command 'volumeUp' | 'volumeDown' | 'togglePlay' 等
+   */
+  sendControlCommand: (command: string) => ipcRenderer.send('control-command', command),
 };
 
 // 创建带类型的ipcRenderer对象，暴露给渲染进程
