@@ -2,7 +2,6 @@
   <div class="recommend-singer">
     <div class="recommend-singer-list">
       <n-carousel
-        v-if="hotSingerData?.artists.length"
         slides-per-view="auto"
         :show-dots="false"
         :space-between="20"
@@ -89,10 +88,10 @@
 import { computed, onMounted, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-
-import { getHotSinger } from '@/api/home';
+import { useDateFormat } from '@vueuse/core';
 import { getListDetail } from '@/api/list';
 import { getMusicDetail } from '@/api/music';
+import { getHotSinger } from '@/api/home';
 import { getUserPlaylist } from '@/api/user';
 import { navigateToMusicList } from '@/components/common/MusicListNavigator';
 import { useArtist } from '@/hooks/useArtist';
@@ -101,29 +100,20 @@ import { Playlist } from '@/types/list';
 import type { IListDetail } from '@/types/listDetail';
 import { SongResult } from '@/types/music';
 import type { IHotSinger } from '@/types/singer';
-import {
-  getImgUrl,
-  isMobile,
-  setAnimationClass,
-  setAnimationDelay,
-  setBackgroundImg
-} from '@/utils';
+import { getImgUrl, isMobile, setAnimationClass, setAnimationDelay, setBackgroundImg } from '@/utils';
 
 const userStore = useUserStore();
 const playerStore = usePlayerStore();
 const recommendStore = useRecommendStore();
 const router = useRouter();
-
 const { t } = useI18n();
-
-// 歌手信息
 const hotSingerData = ref<IHotSinger>();
 const dayRecommendData = computed(() => {
   if (recommendStore.dailyRecommendSongs.length > 0) {
     return {
       dailySongs: recommendStore.dailyRecommendSongs,
     };
-  }
+  };
   return null;
 });
 const userPlaylist = ref<Playlist[]>([]);
@@ -132,7 +122,6 @@ const userPlaylist = ref<Playlist[]>([]);
 const playlistLoading = ref(false);
 const playlistItem = ref<Playlist | null>(null);
 const playlistDetail = ref<IListDetail | null>(null);
-
 const { navigateToArtist } = useArtist();
 
 /**
@@ -144,18 +133,17 @@ const { navigateToArtist } = useArtist();
  * @returns 样式字符串
  */
 const getCarouselItemStyle = (
-  index: number,
-  delayStep: number,
-  totalItems: number,
-  maxWidth?: number
+    index: number,
+    delayStep: number,
+    totalItems: number,
+    maxWidth?: number,
 ) => {
   if (isMobile.value) {
     return 'width: 30%;';
-  }
+  };
   const animationDelay = setAnimationDelay(index, delayStep);
   const width = `calc((100% / ${totalItems}) - 16px)`;
   const maxWidthStyle = maxWidth ? `max-width: ${maxWidth}px;` : '';
-
   return `${animationDelay}; width: ${width}; ${maxWidthStyle}`;
 };
 
@@ -169,13 +157,71 @@ const getCarouselItemStyleForPlaylist = (playlistCount: number) => {
     return 'width: 100%;';
   };
   const animationDelay = setAnimationDelay(1, 100);
-  // 计算所有歌单项的总宽度
-  const itemWidth = 150; // 每个歌单项的宽度
-  const gap = 12; // 间距 (gap-3 in tailwind)
-  const totalWidth = playlistCount * itemWidth + (playlistCount + 1.5) * gap;
+  const itemWidth = 150;
+  const gap = 12;
+  const totalWidth = playlistCount * itemWidth + (playlistCount - 1) * gap;
   const widthStyle = `width: ${totalWidth}px;`;
-
   return `${animationDelay} ${widthStyle}`;
+};
+
+const saveHistoricPlaylists = async () => {
+  const today = useDateFormat(new Date(), 'YYYY-MM-DD').value;
+  const dailyKey = `historic_daily_${today}`;
+  const radarKey = `historic_radar_${today}`;
+
+
+  // 1. 保存私人雷达 (从用户歌单列表中查找)
+  if (userStore.user && !localStorage.getItem(radarKey)) {
+    // userPlaylist 已经由 loadUserData 加载
+    const radarPlaylist = userPlaylist.value.find(
+        (p: Playlist) => p.name.includes('雷达'),
+    );
+
+    if (radarPlaylist) {
+      try {
+        const res = await getListDetail(radarPlaylist.id);
+        const playlist = res.data.playlist;
+        if (playlist && playlist.tracks.length > 0) {
+          const playlistData = {
+            id: playlist.id.toString(),
+            name: `私人雷达 ${today}`,
+            date: today,
+            coverImgUrl: playlist.coverImgUrl,
+            songs: playlist.tracks,
+          };
+          localStorage.setItem(radarKey, JSON.stringify(playlistData));
+          console.log('今日私人雷达已保存');
+        }
+      } catch (error) {
+        console.error('自动保存私人雷达失败:', error);
+      }
+    }
+  } else {
+    console.log('今日私人雷达已保存过，跳过保存');
+  }
+
+  // 2. 保存每日推荐 (从 recommendStore 获取数据)
+  if (userStore.user && !localStorage.getItem(dailyKey)) {
+    // 确保日推数据已加载
+    if (recommendStore.dailyRecommendSongs.length === 0) {
+      await recommendStore.fetchDailyRecommendSongs();
+    }
+    const dailySongs = recommendStore.dailyRecommendSongs;
+    if (dailySongs.length > 0) {
+      const playlistData = {
+        id: `daily_${today}`, // 每日推荐没有固定ID，构造一个
+        name: `每日推荐 ${today}`,
+        date: today,
+        coverImgUrl: dailySongs[0].al.picUrl,
+        songs: dailySongs,
+      };
+      localStorage.setItem(dailyKey, JSON.stringify(playlistData));
+      console.log('今日日推已保存');
+    }
+  } else {
+    console.log('今日日推已保存过，跳过保存');
+  }
+
 };
 
 onMounted(async () => {
@@ -192,14 +238,10 @@ const loadNonUserData = async () => {
     // 获取每日推荐（仅在用户未登录时加载，已登录用户会通过watchEffect触发loadDayRecommendData）
     if (!userStore.user) {
       await loadDayRecommendData();
-    }
-
-    // 获取热门歌手
-    const { data: singerData } = await getHotSinger({ offset: 0, limit: 5 });
-    hotSingerData.value = singerData;
+    };
   } catch (error) {
-    console.error('加载热门歌手数据失败:', error);
-  }
+    console.error('加载日推数据失败:', error);
+  };
 };
 
 // 加载需要登录的数据
@@ -210,10 +252,12 @@ const loadUserData = async () => {
       userPlaylist.value = (playlistData.playlist as Playlist[]).sort(
           (a, b) => b.playCount - a.playCount,
       );
-    }
+      // 数据加载后，执行保存逻辑
+      await saveHistoricPlaylists();
+    };
   } catch (error) {
     console.error('加载用户数据失败:', error);
-  }
+  };
 };
 
 const handleArtistClick = (id: number) => {
@@ -225,36 +269,33 @@ const getDisplayDaySongs = computed(() => {
     return [];
   }
   return dayRecommendData.value.dailySongs.filter(
-    (song) => !playerStore.dislikeList.includes(song.id)
+      (song) => !playerStore.dislikeList.includes(song.id),
   );
 });
 
 const showDayRecommend = () => {
   if (!dayRecommendData.value?.dailySongs) return;
-
   navigateToMusicList(router, {
     type: 'dailyRecommend',
     name: t('comp.recommendSinger.songlist'),
     songList: getDisplayDaySongs.value,
-    canRemove: false
+    canRemove: false,
   });
 };
 
 const openPlaylist = (item: any) => {
   playlistItem.value = item;
   playlistLoading.value = true;
-
   getListDetail(item.id).then((res) => {
     playlistDetail.value = res.data;
     playlistLoading.value = false;
-
     navigateToMusicList(router, {
       id: item.id,
       type: 'playlist',
       name: item.name,
       songList: res.data.playlist.tracks || [],
       listInfo: res.data.playlist,
-      canRemove: false
+      canRemove: false,
     });
   });
 };
@@ -267,7 +308,6 @@ const handlePlayPlaylist = async (id: number) => {
 
     // 获取歌单详情
     const { data } = await getListDetail(id);
-
     if (data?.playlist) {
       // 先使用已有的tracks开始播放（这些是已经在歌单详情中返回的前几首歌曲）
       if (data.playlist.tracks?.length > 0) {
@@ -275,7 +315,7 @@ const handlePlayPlaylist = async (id: number) => {
         const initialSongs = data.playlist.tracks.map((track) => ({
           ...track,
           source: 'netease',
-          picUrl: track.al.picUrl
+          picUrl: track.al.picUrl,
         })) as unknown as SongResult[];
 
         // 设置播放列表
@@ -296,7 +336,7 @@ const handlePlayPlaylist = async (id: number) => {
   } catch (error) {
     console.error('播放歌单失败:', error);
     playlistLoading.value = false;
-  }
+  };
 };
 
 // 异步加载完整歌单
@@ -307,15 +347,13 @@ const loadFullPlaylist = async (trackIds: { id: number }[], initialSongs: SongRe
 
     // 筛选出未加载的ID
     const unloadedTrackIds = trackIds
-      .filter((item) => !loadedIds.has(item.id as number))
-      .map((item) => item.id);
-
+        .filter((item) => !loadedIds.has(item.id as number))
+        .map((item) => item.id);
     if (unloadedTrackIds.length === 0) return;
 
     // 分批获取歌曲详情，每批最多获取500首
     const batchSize = 500;
     const allSongs = [...initialSongs];
-
     for (let i = 0; i < unloadedTrackIds.length; i += batchSize) {
       const batchIds = unloadedTrackIds.slice(i, i + batchSize);
       if (batchIds.length > 0) {
@@ -325,25 +363,22 @@ const loadFullPlaylist = async (trackIds: { id: number }[], initialSongs: SongRe
             const formattedSongs = songsData.songs.map((item) => ({
               ...item,
               source: 'netease',
-              picUrl: item.al.picUrl
+              picUrl: item.al.picUrl,
             })) as unknown as SongResult[];
-
             allSongs.push(...formattedSongs);
-          }
+          };
         } catch (error) {
           console.error('获取批次歌曲详情失败:', error);
-        }
-      }
-    }
-
-    // 更新完整的播放列表但保持当前播放的歌曲不变
+        };
+      };
+    };
     if (allSongs.length > initialSongs.length) {
       console.log('更新播放列表，总歌曲数:', allSongs.length);
       playerStore.setPlayList(allSongs);
-    }
+    };
   } catch (error) {
     console.error('加载完整歌单失败:', error);
-  }
+  };
 };
 
 // 监听登录状态
@@ -351,21 +386,8 @@ watchEffect(() => {
   if (userStore.user) {
     loadUserData();
     loadDayRecommendData();
-  }
+  };
 });
-
-const getPlaylistGridClass = (length: number) => {
-  switch (length) {
-    case 1:
-      return 'one-column';
-    case 2:
-      return 'two-columns';
-    case 3:
-      return 'three-columns';
-    default:
-      return 'four-columns';
-  }
-};
 </script>
 
 <style lang="scss" scoped>

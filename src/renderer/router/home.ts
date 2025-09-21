@@ -76,17 +76,29 @@ const layoutRouter = [
       keepAlive: true
     }
   },
+  // {
+  //   path: '/user',
+  //   name: 'user',
+  //   meta: {
+  //     title: 'comp.user',
+  //     icon: 'icon-Profile',
+  //     keepAlive: true,
+  //     noScroll: true,
+  //     isMobile: true
+  //   },
+  //   component: () => import('@/views/user/index.vue')
+  // },
+
   {
-    path: '/user',
-    name: 'user',
+    path: '/historic-playlists',
+    name: 'historicPlaylists',
     meta: {
-      title: 'comp.user',
-      icon: 'icon-Profile',
+      title: '历史歌单',
+      icon: 'ri-history-line',
       keepAlive: true,
-      noScroll: true,
-      isMobile: true
+      isMobile: true,
     },
-    component: () => import('@/views/user/index.vue')
+    component: () => import('@/views/historicPlaylists/index.vue')
   },
   {
     path: '/set',
