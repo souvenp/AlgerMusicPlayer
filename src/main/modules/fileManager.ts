@@ -69,6 +69,45 @@ export function initializeFileManager() {
     }
   });
 
+  const historicPlaylistsPath = path.join(app.getPath('userData'), 'historicPlaylists');
+  if (!fs.existsSync(historicPlaylistsPath)) {
+    fs.mkdirSync(historicPlaylistsPath, { recursive: true });
+  }
+
+  ipcMain.handle('save-historic-playlist', (_, playlistData: any, key: string) => {
+    try {
+      const filePath = path.join(historicPlaylistsPath, `${key}.json`);
+      // 仅当文件不存在时才写入，避免重复写入
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(playlistData, null, 2));
+        return { success: true, path: filePath };
+      }
+      console.log('File already exists.')
+      return { success: false, message: 'File already exists.' };
+    } catch (error: any) {
+      console.error('保存历史歌单到文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('load-historic-playlists', () => {
+    try {
+      const files = fs.readdirSync(historicPlaylistsPath);
+      const playlists: any[] = [];
+      files.forEach(file => {
+        if (path.extname(file) === '.json') {
+          const filePath = path.join(historicPlaylistsPath, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          playlists.push(JSON.parse(content));
+        }
+      });
+      return { success: true, data: playlists };
+    } catch (error: any) {
+      console.error('读取历史歌单文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 检查文件是否存在
   ipcMain.handle('check-file-exists', (_, filePath) => {
     try {

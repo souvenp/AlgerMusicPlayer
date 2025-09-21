@@ -91,7 +91,6 @@ import { useRouter } from 'vue-router';
 import { useDateFormat } from '@vueuse/core';
 import { getListDetail } from '@/api/list';
 import { getMusicDetail } from '@/api/music';
-import { getHotSinger } from '@/api/home';
 import { getUserPlaylist } from '@/api/user';
 import { navigateToMusicList } from '@/components/common/MusicListNavigator';
 import { useArtist } from '@/hooks/useArtist';
@@ -100,7 +99,7 @@ import { Playlist } from '@/types/list';
 import type { IListDetail } from '@/types/listDetail';
 import { SongResult } from '@/types/music';
 import type { IHotSinger } from '@/types/singer';
-import { getImgUrl, isMobile, setAnimationClass, setAnimationDelay, setBackgroundImg } from '@/utils';
+import { getImgUrl, isElectron, isMobile, setAnimationClass, setAnimationDelay, setBackgroundImg } from '@/utils';
 
 const userStore = useUserStore();
 const playerStore = usePlayerStore();
@@ -165,23 +164,22 @@ const getCarouselItemStyleForPlaylist = (playlistCount: number) => {
 };
 
 const saveHistoricPlaylists = async () => {
+  if (!isElectron || !userStore.user) return;
+
   const today = useDateFormat(new Date(), 'YYYY-MM-DD').value;
   const dailyKey = `historic_daily_${today}`;
   const radarKey = `historic_radar_${today}`;
 
+  if (localStorage.getItem(radarKey) !== 'saved') {
+    try {
+      const radarPlaylistInfo = userPlaylist.value.find(
+          (p: Playlist) => p.name.includes('私人雷达'),
+      );
 
-  // 1. 保存私人雷达 (从用户歌单列表中查找)
-  if (userStore.user && !localStorage.getItem(radarKey)) {
-    // userPlaylist 已经由 loadUserData 加载
-    const radarPlaylist = userPlaylist.value.find(
-        (p: Playlist) => p.name.includes('雷达'),
-    );
-
-    if (radarPlaylist) {
-      try {
-        const res = await getListDetail(radarPlaylist.id);
-        const playlist = res.data.playlist;
-        if (playlist && playlist.tracks.length > 0) {
+      if (radarPlaylistInfo) {
+        const res = await getListDetail(radarPlaylistInfo.id);
+        const playlist = res.data?.playlist;
+        if (playlist && playlist.tracks?.length > 0) {
           const playlistData = {
             id: playlist.id.toString(),
             name: `私人雷达 ${today}`,
@@ -189,38 +187,48 @@ const saveHistoricPlaylists = async () => {
             coverImgUrl: playlist.coverImgUrl,
             songs: playlist.tracks,
           };
-          localStorage.setItem(radarKey, JSON.stringify(playlistData));
-          console.log('今日私人雷达已保存');
+          // 使用 JSON.parse(JSON.stringify(...)) 来创建纯净对象
+          const result = await window.electron.ipcRenderer.invoke('save-historic-playlist', JSON.parse(JSON.stringify(playlistData)), radarKey);
+          if (result.success) {
+            console.log('今日私人雷达已保存到文件');
+            localStorage.setItem(radarKey, 'saved');
+          } else if (result.message === 'File already exists.') {
+            localStorage.setItem(radarKey, 'saved');
+          }
         }
-      } catch (error) {
-        console.error('自动保存私人雷达失败:', error);
       }
+    } catch (error) {
+      console.error('自动保存私人雷达失败:', error);
     }
-  } else {
-    console.log('今日私人雷达已保存过，跳过保存');
+  }
+  if (localStorage.getItem(dailyKey) !== 'saved') {
+    try {
+      if (recommendStore.dailyRecommendSongs.length === 0) {
+        await recommendStore.fetchDailyRecommendSongs();
+      }
+      const dailySongs = recommendStore.dailyRecommendSongs;
+      if (dailySongs && dailySongs.length > 0) {
+        const playlistData = {
+          id: `daily_${today}`,
+          name: `每日推荐 ${today}`,
+          date: today,
+          coverImgUrl: dailySongs[0].al.picUrl,
+          songs: dailySongs,
+        };
+        // 使用 JSON.parse(JSON.stringify(...)) 来创建纯净对象
+        const result = await window.electron.ipcRenderer.invoke('save-historic-playlist', JSON.parse(JSON.stringify(playlistData)), dailyKey);
+        if (result.success) {
+          console.log('今日日推已保存到文件');
+          localStorage.setItem(dailyKey, 'saved');
+        } else if (result.message === 'File already exists.') {
+          localStorage.setItem(dailyKey, 'saved');
+        }
+      }
+    } catch (error) {
+      console.error('自动保存每日推荐失败:', error);
+    }
   }
 
-  // 2. 保存每日推荐 (从 recommendStore 获取数据)
-  if (userStore.user && !localStorage.getItem(dailyKey)) {
-    // 确保日推数据已加载
-    if (recommendStore.dailyRecommendSongs.length === 0) {
-      await recommendStore.fetchDailyRecommendSongs();
-    }
-    const dailySongs = recommendStore.dailyRecommendSongs;
-    if (dailySongs.length > 0) {
-      const playlistData = {
-        id: `daily_${today}`, // 每日推荐没有固定ID，构造一个
-        name: `每日推荐 ${today}`,
-        date: today,
-        coverImgUrl: dailySongs[0].al.picUrl,
-        songs: dailySongs,
-      };
-      localStorage.setItem(dailyKey, JSON.stringify(playlistData));
-      console.log('今日日推已保存');
-    }
-  } else {
-    console.log('今日日推已保存过，跳过保存');
-  }
 
 };
 
@@ -229,7 +237,7 @@ onMounted(async () => {
 });
 
 const loadDayRecommendData = async () => {
-  await recommendStore.fetchDailyRecommendSongs();
+    await recommendStore.fetchDailyRecommendSongs();
 };
 
 // 加载不需要登录的数据
@@ -267,7 +275,7 @@ const handleArtistClick = (id: number) => {
 const getDisplayDaySongs = computed(() => {
   if (!dayRecommendData.value) {
     return [];
-  }
+  };
   return dayRecommendData.value.dailySongs.filter(
       (song) => !playerStore.dislikeList.includes(song.id),
   );

@@ -55,9 +55,9 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDateFormat } from '@vueuse/core';
-import { getImgUrl } from '@/utils';
+import { getImgUrl, isElectron } from '@/utils';
 import { navigateToMusicList } from '@/components/common/MusicListNavigator';
-import { usePlayerStore } from '@/store';
+import { getListDetail } from '@/api/list';
 
 defineOptions({
   name: 'HistoricPlaylists'
@@ -72,17 +72,23 @@ interface HistoricPlaylist {
 }
 
 const router = useRouter();
-const playerStore = usePlayerStore();
 const dailyPlaylists = ref<HistoricPlaylist[]>([]);
 const radarPlaylists = ref<HistoricPlaylist[]>([]);
 
-const loadHistoricPlaylists = () => {
-  const allKeys = Object.keys(localStorage);
-  const dailyKeys = allKeys.filter(key => key.startsWith('historic_daily_'));
-  const radarKeys = allKeys.filter(key => key.startsWith('historic_radar_'));
-
-  dailyPlaylists.value = dailyKeys.map(key => JSON.parse(localStorage.getItem(key)!)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  radarPlaylists.value = radarKeys.map(key => JSON.parse(localStorage.getItem(key)!)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const loadHistoricPlaylists = async () => {
+  if (!isElectron) return;
+  const result = await window.electron.ipcRenderer.invoke('load-historic-playlists');
+  if (result.success) {
+    const allPlaylists: HistoricPlaylist[] = result.data;
+    dailyPlaylists.value = allPlaylists
+        .filter(p => p.id.startsWith('daily_'))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    radarPlaylists.value = allPlaylists
+        .filter(p => !p.id.startsWith('daily_'))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  } else {
+    console.error("加载历史歌单文件失败:", result.error);
+  }
 };
 
 const openPlaylist = (playlist: HistoricPlaylist) => {
@@ -104,7 +110,6 @@ const openPlaylist = (playlist: HistoricPlaylist) => {
     listInfo: listInfo,
   });
 };
-
 
 onMounted(() => {
   loadHistoricPlaylists();
