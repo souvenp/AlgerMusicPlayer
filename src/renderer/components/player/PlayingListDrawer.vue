@@ -191,7 +191,7 @@ const handleDeleteSong = (song: SongResult) => {
 
 .playlist-panel {
   @apply fixed right-0 z-[9999999] rounded-l-xl overflow-hidden;
-  width: 350px;
+  width: 450px;
   height: 70vh;
   top: 15vh; // 距离顶部15%
   animation-duration: 0.4s !important; // 动画持续时间

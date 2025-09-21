@@ -9,6 +9,7 @@
             v-for="artist in favoriteArtists"
             :key="artist.id"
             class="artist-card"
+            :data-artist-id="artist.id"
         >
           <!-- 左侧歌手信息 -->
           <div class="artist-info-panel">
@@ -34,8 +35,7 @@
                     :key="song.id"
                     :item="song"
                     :index="index"
-                    compact
-                    :hide-artist="true"
+                    :hide-artist="false"
                     @play="playArtistSong(artist, song)"
                 />
               </div>
@@ -57,14 +57,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onActivated } from 'vue';
+import { onMounted, ref, onActivated, nextTick, onUnmounted, onDeactivated } from 'vue';
 import { getArtistTopSongs } from '@/api/artist';
 import { getFollowedArtists } from '@/api/user';
 import { usePlayerStore } from '@/store';
 import SongItem from '@/components/common/SongItem.vue';
 import { getImgUrl } from '@/utils';
 import { SongResult } from '@/types/music';
-import {getMusicDetail} from "@/api/music";
+import { getMusicDetail } from "@/api/music";
 import { useArtist } from '@/hooks/useArtist';
 
 defineOptions({
@@ -75,8 +75,42 @@ const playerStore = usePlayerStore();
 const favoriteArtists = ref<any[]>([]);
 const loading = ref(true);
 const { navigateToArtist } = useArtist();
+let observer: IntersectionObserver | null = null;
 
-// 获取关注的歌手列表
+// 新增：只为单个进入视野的歌手加载歌曲
+const fetchSongsForArtist = async (artist: any) => {
+  // 如果已经加载过或正在加载，则跳过
+  if (artist.songsFetched || artist.songsLoading) return;
+
+  artist.songsLoading = true;
+  try {
+    const songsRes = await getArtistTopSongs({ id: artist.id, crypto: 'weapi' });
+    if (songsRes.data && songsRes.data.songs) {
+      const songIds = songsRes.data.songs.map(song => song.id);
+      if (songIds.length > 0) {
+        const detailRes = await getMusicDetail(songIds);
+        if (detailRes.data && detailRes.data.songs) {
+          artist.songs = detailRes.data.songs.map(song => ({
+            ...song,
+            picUrl: song.al.picUrl,
+          }));
+        } else {
+          artist.songs = [];
+        }
+      } else {
+        artist.songs = [];
+      }
+    }
+  } catch (error) {
+    console.error(`获取歌手 ${artist.name} 的热门歌曲失败:`, error);
+    artist.songs = [];
+  } finally {
+    artist.songsLoading = false;
+    artist.songsFetched = true; // 标记为已加载
+  };
+};
+
+// 修改：只获取歌手列表，并设置观察者
 const fetchFavoriteArtists = async () => {
   try {
     loading.value = true;
@@ -84,80 +118,130 @@ const fetchFavoriteArtists = async () => {
     if (res.data && res.data.data) {
       favoriteArtists.value = res.data.data.map(artist => ({
         ...artist,
-        songs: [], // 初始化歌曲列表
-        songsLoading: true, // 初始化加载状态
+        songs: [],
+        songsLoading: false, // 初始状态为 false
+        songsFetched: false, // 新增状态，标记是否已获取
       }));
-      // 获取到最新列表后，也同步更新 playerStore 中的 ID 集合
+
       const artistIds = res.data.data.map((artist: any) => artist.id);
       playerStore.followedArtistIds = new Set(artistIds);
-      // 逐个获取每个歌手的热门歌曲
-      fetchAllArtistSongs();
-    }
+
+      // 立即加载前3个歌手的歌曲
+      favoriteArtists.value.slice(0, 3).forEach(fetchSongsForArtist);
+
+      // 设置观察者来懒加载其余歌手
+      setupObserver();
+    };
   } catch (error) {
     console.error("获取关注歌手列表失败:", error);
   } finally {
     loading.value = false;
-  }
+  };
 };
 
-// 获取所有歌手的热门歌曲
-const fetchAllArtistSongs = () => {
-  favoriteArtists.value.forEach(async (artist) => {
-    try {
-      // 只调用一次 getArtistTopSongs
-      const songsRes = await getArtistTopSongs({ id: artist.id });
-      if (songsRes.data && songsRes.data.songs) {
-        // 直接使用返回的简化版歌曲列表
-        artist.songs = songsRes.data.songs;
+const setupObserver = () => {
+  // 清理旧的观察者
+  if (observer) {
+    observer.disconnect();
+  }
+
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const artistId = Number((entry.target as HTMLElement).dataset.artistId);
+        const artist = favoriteArtists.value.find(a => a.id === artistId);
+        if (artist) {
+          fetchSongsForArtist(artist);
+          observer?.unobserve(entry.target); // 加载后停止观察
+        }
       }
-    } catch (error) {
-      console.error(`获取歌手 ${artist.name} 的热门歌曲失败:`, error);
-      artist.songs = [];
-    } finally {
-      artist.songsLoading = false;
-    }
+    });
+  }, {
+    rootMargin: '200px' // 提前200px开始加载
+  });
+
+  nextTick(() => {
+    const artistCards = document.querySelectorAll('.artist-card');
+    artistCards.forEach((card, index) => {
+      // 只观察第4个及之后的卡片
+      if (index >= 3) {
+        observer?.observe(card);
+      }
+    });
   });
 };
 
-// 播放歌手的歌曲
+// 优化：如果歌曲已加载，直接播放；否则先加载再播放
 const playArtistSong = async (artist: any, clickedSong: SongResult) => {
-  if (!artist.songs || artist.songs.length === 0) return;
-
   try {
-    const detailRes = await getMusicDetail([clickedSong.id as number]);
-    if (!detailRes.data?.songs?.[0]) {
-      throw new Error("无法获取该歌曲的详细信息");
+    // 如果歌曲列表还未加载，则先加载
+    if (!artist.songsFetched) {
+      await fetchSongsForArtist(artist);
+    }
+    if (!artist.songs || artist.songs.length === 0) return;
+
+    // 从已加载的完整列表中找到这首歌
+    const fullSongData = artist.songs.find((s: SongResult) => s.id === clickedSong.id);
+    if (!fullSongData) {
+      throw new Error("无法在已加载列表中找到该歌曲的详细信息");
     }
 
-    const fullSongData = detailRes.data.songs[0];
-    const formattedClickedSong: SongResult = {
-      ...fullSongData,
-      picUrl: fullSongData.al.picUrl,
-      song: {
-        artists: fullSongData.ar,
-        album: fullSongData.al,
-        name: fullSongData.name,
-        id: fullSongData.id,
-      },
-      count: fullSongData.count || 0,
-    };
     playerStore.setPlayList(artist.songs);
-    await playerStore.setPlay(formattedClickedSong);
-
+    await playerStore.setPlay(fullSongData);
   } catch (error) {
     console.error("播放歌曲失败，获取详细信息时出错:", error);
-    playerStore.setPlay({ ...clickedSong, playLoading: false });
-  }
+    // 降级处理，尝试直接播放简略信息
+    await playerStore.setPlay({ ...clickedSong, playLoading: false });
+  };
 };
 
 onMounted(() => {
   fetchFavoriteArtists();
 });
-// onActivated 在每次进入被 <keep-alive> 缓存的组件时都会触发
+
+// onActivated 逻辑修改，增加缓存判断
 onActivated(() => {
-  console.log("Favorite Artists page activated, refreshing data...");
-  // 强制刷新列表，以同步最新的关注状态
+  console.log("Favorite Artists page activated");
+
+  // 检查关注列表是否发生变化
+  const currentArtistIds = new Set(favoriteArtists.value.map(a => a.id));
+  const followedIds = playerStore.followedArtistIds;
+
+  let listsAreSame = currentArtistIds.size === followedIds.size;
+  if (listsAreSame) {
+    for (const id of currentArtistIds) {
+      if (!followedIds.has(id)) {
+        listsAreSame = false;
+        break;
+      }
+    }
+  }
+
+  // 如果列表没有变化，并且已有数据，则不重新加载
+  if (listsAreSame && favoriteArtists.value.length > 0) {
+    console.log("关注列表未变化，使用缓存数据。");
+    // 重新设置观察者，因为DOM可能已重新渲染
+    setupObserver();
+    return;
+  }
+
+  // 如果列表有变化或无数据，则重新加载
+  console.log("关注列表已变化或无数据，重新加载。");
+  favoriteArtists.value = []; // 清空数据以确保重新加载和观察
   fetchFavoriteArtists();
+});
+
+// 在组件卸载或失活时，断开观察者以避免内存泄漏
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
+  }
+});
+
+onDeactivated(() => {
+  if (observer) {
+    observer.disconnect();
+  }
 });
 </script>
 

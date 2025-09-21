@@ -11,111 +11,71 @@
         :autoplay="false"
       >
         <n-carousel-item
-          :class="setAnimationClass('animate__backInRight')"
-          :style="getCarouselItemStyle(0, 100, 6)"
+            :class="setAnimationClass('animate__backInRight')"
+            :style="getCarouselItemStyle(0, 100, 3)"
         >
           <div v-if="dayRecommendData" class="recommend-singer-item relative">
             <div
-              :style="
-                setBackgroundImg(getImgUrl(dayRecommendData?.dailySongs[0].al.picUrl, '500y500'))
-              "
-              class="recommend-singer-item-bg"
+                :style="
+          setBackgroundImg(getImgUrl(dayRecommendData?.dailySongs[0].al.picUrl, '500y500'))
+        "
+                class="recommend-singer-item-bg"
             ></div>
             <div
-              class="recommend-singer-item-count p-2 text-base text-gray-200 z-10 cursor-pointer"
-              @click="showDayRecommend"
+                class="recommend-singer-item-count p-2 text-base text-gray-200 z-10 cursor-pointer"
+                @click="showDayRecommend"
             >
               <div class="font-bold text-lg">
-                {{ t('comp.recommendSinger.title') }}
+                {{ t('comp.recommendSinger.title') }};
               </div>
-
               <div class="mt-2">
                 <p v-for="item in getDisplayDaySongs.slice(0, 5)" :key="item.id" class="text-el">
-                  {{ item.name }}
+                  {{ item.name }};
                   <br />
                 </p>
               </div>
             </div>
           </div>
         </n-carousel-item>
-
         <n-carousel-item
-          v-if="userStore.user && userPlaylist.length"
-          :class="setAnimationClass('animate__backInRight')"
-          :style="getCarouselItemStyleForPlaylist(userPlaylist.length)"
+            v-if="userStore.user && userPlaylist.length"
+            :class="setAnimationClass('animate__backInRight')"
+            :style="getCarouselItemStyleForPlaylist(userPlaylist.length)"
         >
           <div class="user-play">
             <div class="user-play-title mb-3">
-              {{ t('comp.userPlayList.title', { name: userStore.user?.nickname }) }}
+              {{ t('comp.userPlayList.title', { name: userStore.user?.nickname }) }};
             </div>
-            <div class="user-play-list" :class="getPlaylistGridClass(userPlaylist.length)">
+            <div class="user-play-list">
               <div
-                v-for="item in userPlaylist"
-                :key="item.id"
-                class="user-play-item"
-                @click="openPlaylist(item)"
+                  v-for="item in userPlaylist"
+                  :key="item.id"
+                  class="user-play-item"
+                  @click="openPlaylist(item)"
               >
                 <div class="user-play-item-img">
                   <img :src="getImgUrl(item.coverImgUrl, '200y200')" alt="" />
                   <div class="user-play-item-title">
                     <div class="user-play-item-title-name">{{ item.name }}</div>
-
                     <div class="user-play-item-list">
                       <div
-                        v-for="song in item.tracks"
-                        :key="song.id"
-                        class="user-play-item-list-name"
+                          v-for="song in item.tracks"
+                          :key="song.id"
+                          class="user-play-item-list-name"
                       >
-                        {{ song.name }}
+                        {{ song.name }};
                       </div>
                     </div>
                   </div>
                   <div class="user-play-item-count">
                     <div class="user-play-item-count-tag">
-                      {{ t('common.songCount', { count: item.trackCount }) }}
+                      {{ t('common.songCount', { count: item.trackCount }) }};
                     </div>
                   </div>
                   <div class="user-play-item-direct-play" @click.stop="handlePlayPlaylist(item.id)">
                     <i class="iconfont icon-playfill text-xl text-white"></i>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </n-carousel-item>
-        <n-carousel-item
-          v-for="(item, index) in hotSingerData?.artists"
-          :key="item.id"
-          :class="setAnimationClass('animate__backInRight')"
-          :style="getCarouselItemStyle(index + 1, 100, 6)"
-        >
-          <div
-            class="recommend-singer-item relative"
-            :class="setAnimationClass('animate__backInRight')"
-            :style="setAnimationDelay(index + 2, 100)"
-            @click="handleArtistClick(item.id)"
-          >
-            <div
-              :style="
-                setBackgroundImg(getImgUrl(item.picUrl || item.avatar || item.cover, '500y500'))
-              "
-              class="recommend-singer-item-bg"
-            ></div>
-            <div class="recommend-singer-item-count p-2 text-base text-gray-200 z-10">
-              {{ t('common.songCount', { count: item.musicSize }) }}
-            </div>
-            <div class="recommend-singer-item-info z-10">
-              <div class="recommend-singer-item-info-name text-el text-right line-clamp-1">
-                {{ item.name }}
-              </div>
-            </div>
-            <!-- 播放按钮(hover时显示) -->
-            <div
-              class="recommend-singer-item-play-overlay"
-              @click.stop="handleArtistClick(item.id)"
-            >
-              <div class="recommend-singer-item-play-btn">
-                <i class="iconfont icon-playfill text-4xl"></i>
               </div>
             </div>
           </div>
@@ -207,30 +167,15 @@ const getCarouselItemStyle = (
 const getCarouselItemStyleForPlaylist = (playlistCount: number) => {
   if (isMobile.value) {
     return 'width: 100%;';
-  }
+  };
   const animationDelay = setAnimationDelay(1, 100);
-  let width = '';
-  let maxWidth = '';
+  // 计算所有歌单项的总宽度
+  const itemWidth = 150; // 每个歌单项的宽度
+  const gap = 12; // 间距 (gap-3 in tailwind)
+  const totalWidth = playlistCount * itemWidth + (playlistCount + 1.5) * gap;
+  const widthStyle = `width: ${totalWidth}px;`;
 
-  switch (playlistCount) {
-    case 1:
-      width = 'calc(100% / 4 - 16px)';
-      maxWidth = 'max-width: 180px;';
-      break;
-    case 2:
-      width = 'calc(100% / 3 - 16px)';
-      maxWidth = 'max-width: 380px;';
-      break;
-    case 3:
-      width = 'calc(100% / 2 - 16px)';
-      maxWidth = 'max-width: 520px;';
-      break;
-    default:
-      width = 'calc(100% / 1 - 16px)';
-      maxWidth = 'max-width: 656px;';
-  }
-
-  return `${animationDelay}; width: ${width}; ${maxWidth}`;
+  return `${animationDelay} ${widthStyle}`;
 };
 
 onMounted(async () => {
@@ -262,10 +207,9 @@ const loadUserData = async () => {
   try {
     if (userStore.user) {
       const { data: playlistData } = await getUserPlaylist(userStore.user?.userId);
-      // 确保最多只显示4个歌单，并按播放次数排序
-      userPlaylist.value = (playlistData.playlist as Playlist[])
-        .sort((a, b) => b.playCount - a.playCount)
-        .slice(0, 4);
+      userPlaylist.value = (playlistData.playlist as Playlist[]).sort(
+          (a, b) => b.playCount - a.playCount,
+      );
     }
   } catch (error) {
     console.error('加载用户数据失败:', error);
@@ -275,6 +219,7 @@ const loadUserData = async () => {
 const handleArtistClick = (id: number) => {
   navigateToArtist(id);
 };
+
 const getDisplayDaySongs = computed(() => {
   if (!dayRecommendData.value) {
     return [];
@@ -485,35 +430,38 @@ const getPlaylistGridClass = (length: number) => {
     @apply text-gray-900 dark:text-gray-100 font-bold text-lg line-clamp-1;
   }
   &-list {
-    @apply grid gap-3 h-full;
-    &.one-column {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
-      .user-play-item {
-        max-width: 100%;
-      }
-    }
-    &.two-columns {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      .user-play-item {
-        max-width: 100%;
-      }
-    }
-    &.three-columns {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      .user-play-item {
-        max-width: 100%;
-      }
-    }
-    &.four-columns {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      .user-play-item {
-        max-width: 100%;
-      }
-    }
+    //@apply grid gap-3 h-full;
+    //&.one-column {
+    //  grid-template-columns: repeat(1, minmax(0, 1fr));
+    //  .user-play-item {
+    //    max-width: 100%;
+    //  }
+    //}
+    //&.two-columns {
+    //  grid-template-columns: repeat(2, minmax(0, 1fr));
+    //  .user-play-item {
+    //    max-width: 100%;
+    //  }
+    //}
+    //&.three-columns {
+    //  grid-template-columns: repeat(3, minmax(0, 1fr));
+    //  .user-play-item {
+    //    max-width: 100%;
+    //  }
+    //}
+    //&.four-columns {
+    //  grid-template-columns: repeat(4, minmax(0, 1fr));
+    //  .user-play-item {
+    //    max-width: 100%;
+    //  }
+    //}
+      @apply flex gap-3 h-full;
   }
   &-item {
     @apply rounded-2xl overflow-hidden flex flex-col;
     height: 176px;
+    width: 150px;
+    flex-shrink: 0;
 
     &-img {
       @apply relative cursor-pointer transition-all duration-300;

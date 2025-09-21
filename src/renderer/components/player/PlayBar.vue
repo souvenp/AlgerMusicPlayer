@@ -59,6 +59,9 @@
       <div class="music-content-title flex items-center">
         <n-ellipsis class="text-ellipsis" line-clamp="1">
           {{ playMusic?.name || '' }}
+          <span v-if="playMusic.alia?.length || playMusic.tns?.length" class="ml-2 text-gray-400">
+            （{{ (playMusic.alia && playMusic.alia[0]) || (playMusic.tns && playMusic.tns[0]) }}）
+          </span>
         </n-ellipsis>
         <span v-if="playbackRate !== 1.0" class="playback-rate-badge"> {{ playbackRate }}x </span>
       </div>
@@ -425,7 +428,7 @@ const openPlayListDrawer = () => {
   }
 
   .music-content {
-    width: 200px;
+    width: 500px;
     @apply ml-4;
 
     &-title {

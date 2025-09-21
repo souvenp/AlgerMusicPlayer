@@ -8,25 +8,37 @@
     :z-index="9998"
   >
     <div id="drawer-target" :class="[config.theme]">
-      <div
-        class="control-btn absolute top-8 left-8"
-        :class="{ 'pure-mode': config.pureModeEnabled }"
-        @click="closeMusicFull"
-      >
-        <i class="ri-arrow-down-s-line"></i>
-      </div>
+<!--      <div-->
+<!--        class="control-btn absolute top-8 left-8"-->
+<!--        :class="{ 'pure-mode': config.pureModeEnabled }"-->
+<!--        @click="closeMusicFull"-->
+<!--      >-->
+<!--        <i class="ri-arrow-down-s-line"></i>-->
+<!--      </div>-->
 
-      <n-popover trigger="click" placement="bottom">
-        <template #trigger>
-          <div
-            class="control-btn absolute top-8 right-8"
+      <div class="absolute top-8 right-8 flex gap-2">
+        <div class="control-btn" :class="{ 'pure-mode': config.pureModeEnabled }" @click="minimizeWindow">
+          <i class="iconfont icon-minisize"></i>
+        </div>
+        <n-popover trigger="click" placement="bottom">
+          <template #trigger>
+            <div
+                class="control-btn"
+                :class="{ 'pure-mode': config.pureModeEnabled }"
+            >
+              <i class="ri-settings-3-line"></i>
+            </div>
+          </template>
+          <lyric-settings ref="lyricSettingsRef" />
+        </n-popover>
+        <div
+            class="control-btn"
             :class="{ 'pure-mode': config.pureModeEnabled }"
-          >
-            <i class="ri-settings-3-line"></i>
-          </div>
-        </template>
-        <lyric-settings ref="lyricSettingsRef" />
-      </n-popover>
+            @click="closeMusicFull"
+        >
+          <i class="ri-arrow-down-s-line"></i>
+        </div>
+      </div>
 
       <div
         v-if="!config.hideCover"
@@ -443,6 +455,10 @@ const playerStore = usePlayerStore();
 const closeMusicFull = () => {
   isVisible.value = false;
   playerStore.setMusicFull(false);
+};
+
+const minimizeWindow = () => {
+  window.api.minimize();
 };
 
 // 添加滚动监听

@@ -20,6 +20,9 @@
         <div class="button" @click="minimize">
           <i class="iconfont icon-minisize"></i>
         </div>
+        <div class="button" @click="maximize">
+          <i class="iconfont icon-maxsize"></i>
+        </div>
         <div class="button" @click="handleClose">
           <i class="iconfont icon-close"></i>
         </div>
@@ -79,6 +82,13 @@ const minimize = () => {
     return;
   }
   window.api.minimize();
+};
+
+const maximize = () => {
+  if (!isElectron) {
+    return;
+  }
+  window.api.maximize();
 };
 
 const miniWindow = () => {
