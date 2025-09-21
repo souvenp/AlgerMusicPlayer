@@ -265,6 +265,13 @@ export function updateTrayMenu(mainWindow: BrowserWindow) {
         }
       },
       {
+        label: '显示歌词',
+        type: 'normal',
+        click: () => {
+          mainWindow.webContents.send('toggle-lyric-window');
+        }
+      },
+      {
         label: i18n.global.t('common.tray.favorite'),
         type: 'normal',
         click: () => {

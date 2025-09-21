@@ -890,6 +890,10 @@ export const initAudioListeners = async () => {
       window.api.onLyricWindowClosed(() => {
         isLyricWindowOpen.value = false;
       });
+
+      window.electron.ipcRenderer.on('toggle-lyric-window', () => {
+        openLyric();
+      });
     }
 
     // 获取最新的音频实例
