@@ -2,12 +2,12 @@
   <div class="recommend-singer">
     <div class="recommend-singer-list">
       <n-carousel
-        slides-per-view="auto"
-        :show-dots="false"
-        :space-between="20"
-        draggable
-        show-arrow
-        :autoplay="false"
+          slides-per-view="auto"
+          :show-dots="false"
+          :space-between="20"
+          draggable
+          show-arrow
+          :autoplay="false"
       >
         <n-carousel-item
             :class="setAnimationClass('animate__backInRight')"
@@ -166,9 +166,14 @@ const getCarouselItemStyleForPlaylist = (playlistCount: number) => {
 const saveHistoricPlaylists = async () => {
   if (!isElectron || !userStore.user) return;
 
-  const today = useDateFormat(new Date(), 'YYYY-MM-DD').value;
-  const dailyKey = `historic_daily_${today}`;
-  const radarKey = `historic_radar_${today}`;
+  // 新的日期逻辑: 北京时间早上7点为新的一天
+  // 通过从当前时间减去7小时来实现
+  const now = new Date();
+  const adjustedDate = new Date(now.getTime() - 7 * 60 * 60 * 1000);
+  const playlistDate = useDateFormat(adjustedDate, 'YYYY-MM-DD').value;
+
+  const dailyKey = `historic_daily_${playlistDate}`;
+  const radarKey = `historic_radar_${playlistDate}`;
 
   if (localStorage.getItem(radarKey) !== 'saved') {
     try {
@@ -182,8 +187,8 @@ const saveHistoricPlaylists = async () => {
         if (playlist && playlist.tracks?.length > 0) {
           const playlistData = {
             id: playlist.id.toString(),
-            name: `私人雷达 ${today}`,
-            date: today,
+            name: `私人雷达 ${playlistDate}`,
+            date: playlistDate,
             coverImgUrl: playlist.coverImgUrl,
             songs: playlist.tracks,
           };
@@ -209,9 +214,9 @@ const saveHistoricPlaylists = async () => {
       const dailySongs = recommendStore.dailyRecommendSongs;
       if (dailySongs && dailySongs.length > 0) {
         const playlistData = {
-          id: `daily_${today}`,
-          name: `每日推荐 ${today}`,
-          date: today,
+          id: `daily_${playlistDate}`,
+          name: `每日推荐 ${playlistDate}`,
+          date: playlistDate,
           coverImgUrl: dailySongs[0].al.picUrl,
           songs: dailySongs,
         };
@@ -237,7 +242,7 @@ onMounted(async () => {
 });
 
 const loadDayRecommendData = async () => {
-    await recommendStore.fetchDailyRecommendSongs();
+  await recommendStore.fetchDailyRecommendSongs();
 };
 
 // 加载不需要登录的数据
@@ -485,7 +490,7 @@ watchEffect(() => {
     //    max-width: 100%;
     //  }
     //}
-      @apply flex gap-3 h-full;
+    @apply flex gap-3 h-full;
   }
   &-item {
     @apply rounded-2xl overflow-hidden flex flex-col;
